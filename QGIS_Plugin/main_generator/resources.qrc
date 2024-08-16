@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/plugins/Main_Generator" >
+        <file>icon.png</file>
+    </qresource>
+</RCC>

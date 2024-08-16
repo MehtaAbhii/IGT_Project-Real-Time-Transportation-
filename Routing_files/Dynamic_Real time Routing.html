@@ -1,0 +1,133 @@
+
+<html>
+<head>
+    <title>Map Integration</title>
+    <link rel="stylesheet" href="https://js.arcgis.com/4.23/esri/themes/light/main.css">
+    <style>
+        #viewDiv {
+            height: 600px;
+            width: 100%;
+            position: relative;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: white;
+            padding: 10px;
+            z-index: 1000;
+        }
+        #startInput, #endInput {
+            margin-bottom: 5px;
+        }
+        #transitDetails {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewDiv"></div>
+    <div id="controls">
+        <input type="text" id="startInput" placeholder="Start Location">
+        <br>
+        <input type="text" id="endInput" placeholder="End Location">
+        <br>
+        <button onclick="plotRoute()">Plot Route</button>
+    </div>
+    <div id="transitDetails"></div>
+
+    <script src="https://js.arcgis.com/4.23/"></script>
+    <script>
+        require([
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/Graphic",
+            "esri/layers/GraphicsLayer",
+            "dojo/domReady!"
+        ], function(Map, MapView, Graphic, GraphicsLayer) {
+            var map = new Map({
+                basemap: "streets-navigation-vector"
+            });
+
+            var view = new MapView({
+                container: "viewDiv",
+                map: map,
+                center: [72.8777, 19.0760], 
+                zoom: 12
+            });
+
+            var graphicsLayer = new GraphicsLayer();
+            map.add(graphicsLayer);
+
+            window.plotRoute = function() {
+                var startLocation = document.getElementById('startInput').value;
+                var endLocation = document.getElementById('endInput').value;
+
+                var directionsService = new google.maps.DirectionsService();
+                var request = {
+                    origin: startLocation,
+                    destination: endLocation,
+                    travelMode: 'TRANSIT',
+                    transitOptions: {
+                        modes: ['BUS', 'TRAIN']
+                    }
+                };
+
+                directionsService.route(request, function(result, status) {
+                    if (status == 'OK') {
+                        var transitSteps = result.routes[0].legs[0].steps.filter(function(step) {
+                            return step.travel_mode === 'TRANSIT' && (step.instructions.toLowerCase().includes('bus') || step.instructions.toLowerCase().includes('train'));
+                        });
+
+                        graphicsLayer.removeAll();
+
+                        var route = [];
+                        transitSteps.forEach(function(step) {
+                            step.path.forEach(function(point) {
+                                route.push([point.lng(), point.lat()]);
+                            });
+                        });
+
+                        var routeGraphic = new Graphic({
+                            geometry: {
+                                type: "polyline",
+                                paths: route
+                            },
+                            symbol: {
+                                type: "simple-line",
+                                color: [0, 0, 255],
+                                width: 2
+                            }
+                        });
+                        graphicsLayer.add(routeGraphic);
+
+                        view.goTo(routeGraphic.geometry);
+
+                        var transitDetailsDiv = document.getElementById('transitDetails');
+                        transitDetailsDiv.innerHTML = "<h3>Transit Details:</h3>" +
+                            "<p><strong>From:</strong> " + transitSteps[0].transit.departure_stop.name + "</p>" +
+                            "<p><strong>To:</strong> " + transitSteps[transitSteps.length - 1].transit.arrival_stop.name + "</p>" +
+                            "<ul>";
+
+                        transitSteps.forEach(function(step) {
+                            transitDetailsDiv.innerHTML += "<li>" + step.instructions + "</li>";
+                        });
+
+                        transitDetailsDiv.innerHTML += "</ul>";
+                    } else {
+                        alert('Failed to retrieve transit route');
+                    }
+                });
+            };
+        });
+    </script>
+    <script>
+        function initMap() {
+            // Google Maps API initialization function
+        }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDIuas5hFZwJLHgx-vJ_UtUhp4vGlBTYIs&callback=initMap" defer></script>
+</body>
+</html>
