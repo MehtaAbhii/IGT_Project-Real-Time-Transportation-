@@ -3,7 +3,7 @@
 IGT is an innovative real-time transit transportation system designed to enhance urban mobility, reduce traffic congestion, and promote sustainable transportation options.
 
 ## Results:
-![Output](image.png)
+![Output](Assets/image.png)
 
 
 ## Table of Contents
